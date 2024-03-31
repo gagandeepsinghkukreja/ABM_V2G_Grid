@@ -1,0 +1,292 @@
+Primary Notebook:
+
+The 2021 half hourly demand, solar and wind generation data has been used to evaluate average solar, wind half hourly capacity factor while the average half hourly demand has been used further for the modelling purpose.
+
+Link to NationalGridESO 2021 half hourly data:  
+
+https://data.nationalgrideso.com/demand/historic-demand-data/r/historic_demand_data_2021
+
+
+```{r}
+#V2G80 
+
+library(tidyverse)
+library(ggplot2)
+
+library(knitr)
+library(xtable)
+
+
+
+
+
+df_v2g80 <- read_csv("C:/Users/k_gag/OneDrive/Desktop/Dissertation_V2G/results/balancing_80.csv")
+#Converting in GW
+
+df_v2g80$demand_80 <- df_v2g80$demand_80*0.001
+df_v2g80$solar <- df_v2g80$solar*0.001
+df_v2g80$wind <- df_v2g80$wind*0.001
+df_v2g80$V2G_80 <- df_v2g80$V2G_80*0.001
+
+
+mod_v2g80 <- lm(demand_80 ~ solar+wind+V2G_80, data = df_v2g80)
+smod_v2g80 <- data.frame(xtable(summary(mod_v2g80)))
+
+```
+
+
+```{r}
+#MonteCarlo Multivariate Regression at 80% V2G occupancy
+
+library(data.table)
+m_demand_80 <- mean(df_v2g80$demand_80)
+sd_demand_80 <- sd(df_v2g80$demand_80)
+
+m_solar_80 <- mean(df_v2g80$solar)
+sd_solar_80 <- sd(df_v2g80$solar)
+
+
+m_wind_80 <- mean(df_v2g80$wind)
+sd_wind_80 <- sd(df_v2g80$wind)
+
+
+m_v2g_80 <- mean(df_v2g80$V2G_80)
+sd_v2g_80 <- sd(df_v2g80$V2G_80)
+
+
+fit <- lm(demand_80 ~ solar+wind+V2G_80,data =df_v2g80 )
+beta_0 = fit$coefficients[1] #Slope  
+beta_1 = fit$coefficients[2] # solar
+beta_2 = fit$coefficients[3] # wind
+beta_3 = fit$coefficients[4] # V2G_80
+
+set.seed(1) #Seed
+n = 365*48 # Sample Size
+M =  500 # Number of Experiments
+
+
+#Storage 
+slope_DT <- rep(0,M)
+slope_DT_2 <- rep(0,M)
+intercept_DT <- rep(0,M)
+
+
+
+estimates_DT <- do.call("rbind",lapply(1:M, function(i) {
+  # Generate data
+  U_i = rnorm(n, mean = 47.48, sd = 0) # Error
+  X_i_1 = rnorm(n, mean = m_solar_80, sd = sd_solar_80) # First independent variable/solar
+  X_i_2 = rnorm(n, mean = m_wind_80, sd = sd_wind_80) #Second independent variable/wind
+  X_i_3 = rnorm(n, mean = m_v2g_80, sd = sd_v2g_80) # Third independent variable/v2g_80
+  
+  Y_i = beta_0 + beta_1*X_i_1 + beta_2*X_i_2 + beta_3*X_i_3 + U_i  # Dependent variable/Obtaining the demand through regression 
+
+  # Formulate data.table
+  data_i = data.table(Y = Y_i, X1 = X_i_1, X2 = X_i_2, X3 = X_i_3)
+  
+  # Run regressions
+  ols_i <- fixest::feols(data = data_i, Y ~ X1 + X2 + X3)  
+  ols_i$coefficients
+}))
+
+estimates_DT_80 <- setNames(data.table(estimates_DT),c("Coeff_intercept","Coeff_Solar","Coeff_Wind","COeff_V2G_80%"))
+
+
+
+```
+
+
+
+```{r}
+
+#V2G50 
+
+library(tidyverse)
+library(ggplot2)
+
+library(knitr)
+library(xtable)
+
+
+
+
+
+df_v2g50 <- read_csv("C:/Users/k_gag/OneDrive/Desktop/Dissertation_V2G/results/balancing_50.csv")
+#Converting in GW
+
+df_v2g50$demand_50 <- df_v2g50$demand_50*0.001
+df_v2g50$solar <- df_v2g50$solar*0.001
+df_v2g50$wind <- df_v2g50$wind*0.001
+df_v2g50$v2g_50 <- df_v2g50$v2g_50*0.001
+
+
+mod_v2g50 <- lm(demand_50 ~ solar+wind+v2g_50, data = df_v2g50)
+smod_v2g50 <- data.frame(xtable(summary(mod_v2g50)))
+
+
+
+
+```
+
+```{r}
+#MonteCarlo Multivariate Regression at 50% V2G occupancy
+library(data.table)
+
+library(data.table)
+m_demand_50 <- mean(df_v2g50$demand_50)
+sd_demand_50 <- sd(df_v2g50$demand_50)
+
+m_solar_50 <- mean(df_v2g50$solar)
+sd_solar_50 <- sd(df_v2g50$solar)
+
+
+m_wind_50 <- mean(df_v2g50$wind)
+sd_wind_50 <- sd(df_v2g50$wind)
+
+
+m_v2g_50 <- mean(df_v2g50$v2g_50)
+sd_v2g_50 <- sd(df_v2g50$v2g_50)
+
+
+fit <- lm(demand_50 ~ solar+wind+v2g_50,data =df_v2g50 )
+beta_0 = fit$coefficients[1] #Slope  
+beta_1 = fit$coefficients[2] # solar
+beta_2 = fit$coefficients[3] # wind
+beta_3 = fit$coefficients[4] # V2G_80
+
+set.seed(1) #Seed
+n = 365*48 # Sample Size
+M =  500 # Number of Experiments
+
+
+#Storage 
+slope_DT <- rep(0,M)
+slope_DT_2 <- rep(0,M)
+intercept_DT <- rep(0,M)
+
+
+estimates_DT <- do.call("rbind",lapply(1:M, function(i) {
+  # Generate data
+  U_i = rnorm(n, mean = 0.0296, sd = 0) # Error
+  X_i_1 = rnorm(n, mean = m_solar_50, sd = sd_solar_50) # First independent variable
+  X_i_2 = rnorm(n, mean = m_wind_50, sd = sd_wind_50) # Second independent variable
+  X_i_3 = rnorm(n, mean = m_v2g_50, sd = sd_v2g_50) # Third independent variable
+  
+  Y_i = beta_0 + beta_1*X_i_1 + beta_2*X_i_2 + beta_3*X_i_3 + U_i  # Dependent variable
+  # Formulate data.table
+  data_i = data.table(Y = Y_i, X1 = X_i_1, X2 = X_i_2, X3 = X_i_3)
+  
+  # Run regressions
+  ols_i <- fixest::feols(data = data_i, Y ~ X1 + X2 + X3)  
+  ols_i$coefficients
+}))
+
+estimates_DT_50 <- setNames(data.table(estimates_DT),c("Coeff_intercept","Coeff_Solar","Coeff_Wind","Coeff_V2G_50%"))
+
+
+
+```
+
+
+The Vehicle Availiblity function has been obtained through inversing the traffic data and later normalizing the availibity function for utilising  
+
+
+
+```{r}
+
+#V2G30 
+
+library(tidyverse)
+library(ggplot2)
+
+library(knitr)
+library(xtable)
+
+
+
+
+
+df_v2g30 <- read_csv("C:/Users/k_gag/OneDrive/Desktop/Dissertation_V2G/results/balancing_30.csv")
+
+#Converting in GW:
+
+df_v2g30$demand_30 <- df_v2g30$demand_30*0.001
+df_v2g30$solar <- df_v2g30$solar*0.001
+df_v2g30$wind <- df_v2g30$wind*0.001
+df_v2g30$v2g_30 <- df_v2g30$v2g_30*0.001
+
+#Mulitvariate Linear Regression:
+
+mod_v2g30 <- lm(demand_30 ~ solar+wind+v2g_30, data = df_v2g30)
+smod_v2g30 <- data.frame(xtable(summary(mod_v2g30)))
+
+
+
+
+```
+
+
+```{r}
+
+#MonteCarlo Multivariate Regression at 30% V2G occupancy
+
+library(data.table)
+m_demand_30 <- mean(df_v2g30$demand_30)
+sd_demand_30 <- sd(df_v2g30$demand_30)
+
+m_solar_30 <- mean(df_v2g30$solar)
+sd_solar_30 <- sd(df_v2g30$solar)
+
+
+m_wind_30 <- mean(df_v2g30$wind)
+sd_wind_30 <- sd(df_v2g30$wind)
+
+
+m_v2g_30 <- mean(df_v2g30$v2g_30)
+sd_v2g_30 <- sd(df_v2g30$v2g_30)
+
+
+fit <- lm(demand_30 ~ solar+wind+v2g_30,data =df_v2g30 )
+beta_0 = fit$coefficients[1] #Slope  
+beta_1 = fit$coefficients[2] # solar
+beta_2 = fit$coefficients[3] # wind
+beta_3 = fit$coefficients[4] # V2G_80
+
+set.seed(1) #Seed
+n = 365*48 # Sample Size
+M =  500 # Number of Experiments
+
+
+#Storage 
+slope_DT <- rep(0,M)
+slope_DT_2 <- rep(0,M)
+intercept_DT <- rep(0,M)
+
+
+estimates_DT <- do.call("rbind",lapply(1:M, function(i) {
+  # Generate data
+  U_i = rnorm(n, mean = 17.78, sd = 0) # Error/obtained through regressing in multivariate format with the demand 
+  X_i_1 = rnorm(n, mean = m_solar_30, sd = sd_solar_30) # First independent variable/solar
+  X_i_2 = rnorm(n, mean = m_wind_30, sd = sd_wind_30) #Second independent variable/wind
+  X_i_3 = rnorm(n, mean = m_v2g_30, sd = sd_v2g_30) # Third independent variable/v2g_30
+  
+  Y_i = beta_0 + beta_1*X_i_1 + beta_2*X_i_2 + beta_3*X_i_3 + U_i  # Dependent variable
+
+  # Formulate data.table
+  data_i = data.table(Y = Y_i, X1 = X_i_1, X2 = X_i_2, X3 = X_i_3)
+  
+  # Run regressions
+  ols_i <- fixest::feols(data = data_i, Y ~ X1 + X2 + X3)  
+  ols_i$coefficients
+}))
+
+estimates_DT_30 <- setNames(data.table(estimates_DT),c("Coeff_intercept","Coeff_Solar","Coeff_Wind","Coeff_V2G_30%"))
+
+```
+
+
+
+
+
+
+

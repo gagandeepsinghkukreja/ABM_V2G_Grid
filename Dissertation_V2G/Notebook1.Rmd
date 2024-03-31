@@ -1,0 +1,177 @@
+
+The 2021 half hourly demand, solar and wind generation data has been used to evaluate average solar, wind half hourly capacity factor while the average half hourly demand has been used further for the modelling purpose.
+
+Link to NationalGridESO 2021 half hourly data:  
+
+https://data.nationalgrideso.com/demand/historic-demand-data/r/historic_demand_data_2021
+
+
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+maindf <- read_csv("C:/Users/k_gag/OneDrive/Desktop/Dissertation_V2G/Datasets/demanddata_2021.csv")
+df <- read_csv("C:/Users/k_gag/OneDrive/Desktop/Dissertation_V2G/Datasets/powersettlement.csv")
+
+df_demand <- read_csv("C:/Users/k_gag/OneDrive/Desktop/Dissertation_V2G/Datasets/halfhourlyavg.csv")
+
+df1 <-df %>% group_by(settlement_period) %>% 
+  summarize(halfhourly=mean(capacity))
+df1 %>% ggplot(aes(x=))
+dfws <- maindf %>% group_by(SETTLEMENT_PERIOD) %>% 
+  summarize(halfhourlysolar=mean(EMBEDDED_SOLAR_GENERATION),halfhourlywind=mean(EMBEDDED_WIND_GENERATION),demand=mean(ENGLAND_WALES_DEMAND))
+  
+df_renewablegen_demand <- read_csv("C:/Users/k_gag/OneDrive/Desktop/Dissertation_V2G/Datasets/halfhourlysolarwind.csv")
+
+
+```
+
+
+
+
+
+```{r}
+
+
+df_rendemand_longer <- df_renewablegen_demand %>%pivot_longer(cols=c('halfhourlysolar','halfhourlywind','halfhourlydemand'), names_to='source', values_to='value')
+
+df_renewablegen_demand %>% ggplot(aes(x = SETTLEMENT_PERIOD)) + 
+  geom_line(aes(y = halfhourlysolar), color ='yellow', size=1) +
+  geom_line(aes(y=halfhourlywind), color='blue' ,size=1) +
+  geom_line(aes(y=halfhourlydemand), color='red')
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+library(tidyverse)
+#Vehicle Availiblity Plot
+
+#Fitting points to Lagrange Equation:
+
+df <-data.frame(x = c(0,	0.5,	1,	1.5,	2,	2.5,	3,	3.5,	4,	4.5,	5,	5.5,	6,	6.5,	7,	7.5,	8,	8.5,	9,	9.5,	10,	10.5,	11,	11.5,	12,	12.5,	13,	13.5,	14,	14.5,	15,	15.5,	16,	16.5,	17,	17.5,	18,	18.5,	19,	19.5,	20,	20.5,	21,	21.5,	22,	22.5,	23,	23.5)
+,y = c(0.484848484848485,	0.606060606060606,	0.666666666666667,	0.787878787878788,	0.848484848484849,	0.878787878787879,	0.939393939393939,	0.954545454545455,	1,	0.787878787878788,	0.606060606060606,	0.303030303030303,	0.0606060606060606,	0.121212121212121,	0.151515151515152,	0.272727272727273,	0.303030303030303,	0.196969696969697,	0.166666666666667,	0.327272727272727,	0.212121212121212,	0.0909090909090909,	0,	0.0909090909090909,	0.181818181818182,	0.212121212121212,	0.196969696969697,	0.16969696969697,	0.145454545454545,	0.133333333333333,	0.121212121212121,	0.109090909090909,	0.096969696969697,	0.0848484848484848,	0,	0.0757575757575758,	0.181818181818182,	0.303030303030303,	0.424242424242424,	0.378787878787879,	0.351515151515152,	0.227878787878788,	0.181818181818182,	0.16969696969697,	0.145454545454545,	0.109090909090909,	0.0848484848484848,	0.0606060606060606
+))
+
+fit5 <- lm(y~poly(x,10,raw=TRUE), data=df)
+
+            
+plot(df$x, df$y, pch=19, xlab='x', ylab='y')
+x_axis <- seq(1, 24, length=24)
+lines(x_axis, predict(fit5, data.frame(x=x_axis)), col='orange', cex=1)
+summary(fit5)
+
+```
+
+
+
+
+```{r}
+library(ggplot2)
+
+ggp <- ggplot(df, aes(x, y)) +    # Create ggplot2 scatterplot
+  geom_point()
+a1<- ggp +                               # Regression curve & confidence band
+  stat_smooth(method = "lm",
+              formula = y ~ poly(x, 10))
+print(a1 + labs(y = 'Vehicle Availiblity Flux' , x = 'Hours in HH:MM'))
+
+```
+
+
+
+
+```{r}
+#Average daily capacity factor for solar and wind:
+
+library(tidyverse)
+
+df_capacity_windsolar <- maindf %>% group_by(SETTLEMENT_PERIOD) %>% 
+  summarize(halfhourly_wind=mean(EMBEDDED_WIND_GENERATION),halfhourly_solar=mean(EMBEDDED_SOLAR_GENERATION),capacity_wind=mean(EMBEDDED_WIND_CAPACITY),capacity_solar=mean(EMBEDDED_SOLAR_CAPACITY))
+
+df_capacity_windsolar$deliverypotentialwind =df_capacity_windsolar$halfhourly_wind/df_capacity_windsolar$capacity_wind
+
+df_capacity_windsolar$deliverypotentialsolar =df_capacity_windsolar$halfhourly_solar/df_capacity_windsolar$capacity_solar
+
+```
+
+
+
+Regression for Charging at 50% occupancy vs at 80% occupancy based upon the occupancy outputs from the model:
+```{r}
+
+library(tidyverse)
+library(ggplot2)
+df_overall <- read_csv("C:/Users/k_gag/OneDrive/Desktop/Dissertation_V2G/results/overall.csv")
+
+#At 80% compatiblity:
+
+lm80_50 <- lm(formula = Charging_80 ~ Charging_50, data = df_overall)
+summary(lm80_50)
+plot(lm80_50)
+
+ggplot(data=df_overall, aes(x=Charging_80, y=Charging_50)) + geom_point(color='red') + 
+  geom_smooth(method = 'lm', se=FALSE) 
+
+```
+```{r}
+library(tidyverse)
+library(glmnet)  
+library(reshape)
+library(ggplot2)
+library(randomForest)
+
+
+#Creating Training and Testing Set:
+set.seed(23)
+df <- read_csv("C:/Users/k_gag/OneDrive/Desktop/Dissertation_V2G/results/30_V2G/30_all.csv")
+
+
+# Create random forest for regression
+df.rf <- randomForest(Available ~ ., data = df, mtry = 3,
+                         importance = TRUE, na.action = na.omit)
+print(df.rf)
+plot(df.rf)
+
+
+```
+
+
+```{r}
+
+lm80_30 <- lm(formula = Charging_80 ~ Charging_30, data = df_overall)
+summary(lm80_30)
+plot(lm80_30)
+
+ggplot(data=df_overall, aes(x=Charging_80, y=Charging_30)) + geom_point(color='red') + 
+  geom_smooth(method = 'lm', se=FALSE) 
+
+
+```
+
+
+```{r}
+
+lm50_30 <- lm(formula = Charging_50 ~ Charging_30, data = df_overall)
+summary(lm50_30)
+plot(lm50_30)
+
+ggplot(data=df_overall, aes(x=Charging_50, y=Charging_30)) + geom_point(color='red') + 
+  geom_smooth(method = 'lm', se=FALSE) 
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
